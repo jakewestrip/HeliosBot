@@ -74,7 +74,8 @@ namespace HeliosBot.Services
 
         public async Task<Result<PapertradeBuyResult>> BuyShares(long userId, string stockCode, long amount)
         {
-            var lookup = await _asxService.Lookup(stockCode.ToUpper());
+            var stockCodeUpper = stockCode.ToUpper();
+            var lookup = await _asxService.Lookup(stockCodeUpper);
 
             if (!lookup.IsSuccess)
                 return new Result<PapertradeBuyResult> { IsSuccess = false, Message = lookup.Message };
@@ -92,7 +93,7 @@ namespace HeliosBot.Services
             {
                 UserId = userId,
                 Amount = amount,
-                StockCode = stockCode,
+                StockCode = stockCodeUpper,
                 Cost = cost,
                 Price = price
             };
@@ -103,10 +104,10 @@ namespace HeliosBot.Services
             user.Money -= cost;
             result.Money = user.Money;
 
-            if (user.OwnedStocks != null && user.OwnedStocks.Any(x => x.StockCode == stockCode))
+            if (user.OwnedStocks != null && user.OwnedStocks.Any(x => x.StockCode == stockCodeUpper))
             {
-                user.OwnedStocks.First(x => x.StockCode == stockCode).Shares += amount;
-                result.TotalAmount = user.OwnedStocks.First(x => x.StockCode == stockCode).Shares;
+                user.OwnedStocks.First(x => x.StockCode == stockCodeUpper).Shares += amount;
+                result.TotalAmount = user.OwnedStocks.First(x => x.StockCode == stockCodeUpper).Shares;
             }
             else
             {
@@ -115,7 +116,7 @@ namespace HeliosBot.Services
 
                 user.OwnedStocks.Add(new PapertradeOwnedStock()
                 {
-                    StockCode = stockCode,
+                    StockCode = stockCodeUpper,
                     Shares = amount,
                     User = user
                 });
@@ -134,7 +135,8 @@ namespace HeliosBot.Services
 
         public async Task<Result<PapertradeSellResult>> SellShares(long userId, string stockCode, long amount)
         {
-            var lookup = await _asxService.Lookup(stockCode.ToUpper());
+            var stockCodeUpper = stockCode.ToUpper();
+            var lookup = await _asxService.Lookup(stockCodeUpper);
 
             if (!lookup.IsSuccess)
                 return new Result<PapertradeSellResult> { IsSuccess = false, Message = lookup.Message };
@@ -152,21 +154,21 @@ namespace HeliosBot.Services
             {
                 UserId = userId,
                 Amount = amount,
-                StockCode = stockCode,
+                StockCode = stockCodeUpper,
                 Cost = cost,
                 Price = price
             };
 
-            if (user.OwnedStocks == null || user.OwnedStocks.All(x => x.StockCode != stockCode) || 
-            user.OwnedStocks.First(x => x.StockCode == stockCode).Shares < amount)
+            if (user.OwnedStocks == null || user.OwnedStocks.All(x => x.StockCode != stockCodeUpper) || 
+            user.OwnedStocks.First(x => x.StockCode == stockCodeUpper).Shares < amount)
                 return new Result<PapertradeSellResult> { IsSuccess = false, Message = "You don't have those shares to sell." };
 
             user.Money += cost;
             result.Money = user.Money;
 
-            var ownedStock = user.OwnedStocks.First(x => x.StockCode == stockCode);
+            var ownedStock = user.OwnedStocks.First(x => x.StockCode == stockCodeUpper);
             ownedStock.Shares -= amount;
-            result.TotalAmount = user.OwnedStocks.First(x => x.StockCode == stockCode).Shares;
+            result.TotalAmount = user.OwnedStocks.First(x => x.StockCode == stockCodeUpper).Shares;
 
             if (result.TotalAmount == 0)
                 user.OwnedStocks.Remove(ownedStock);
