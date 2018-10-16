@@ -32,11 +32,30 @@ namespace HeliosBot.Services
             _asxService = asxService;
         }
 
+        private async Task<PapertradeUser> GetOrCreateUser(long userId)
+        {
+            var c = _databaseContext.PapertradeUser
+                .Include(x => x.OwnedStocks)
+                .Where(x => x.UserId == userId)
+                .ToList();
+
+            if (c.Count > 0)
+                return c.First();
+
+            var newUser = new PapertradeUser()
+            {
+                UserId = userId,
+                Money = 50000
+            };
+
+            _databaseContext.PapertradeUser.Add(newUser);
+            await _databaseContext.SaveChangesAsync();
+            return newUser;
+        }
+
         public async Task<Result<PapertradePortfolioResult>> GetMoney(long userId)
         {
-            var user = _databaseContext.PapertradeUser
-                .Include(x => x.OwnedStocks)
-                .First(x => x.UserId == userId);
+            var user = await GetOrCreateUser(userId);
 
             var result = new PapertradePortfolioResult()
             {
@@ -67,7 +86,7 @@ namespace HeliosBot.Services
 
             var price = data.Last_Price.Value;
             var cost = amount * price;
-            var user = _databaseContext.PapertradeUser.First(x => x.UserId == userId);
+            var user = await GetOrCreateUser(userId);
 
             var result = new PapertradeBuyResult()
             {

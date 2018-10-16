@@ -47,7 +47,7 @@ namespace HeliosBot
         {
             var configBuilder = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json")
+                .AddJsonFile("appsettings.json", true)
                 .AddEnvironmentVariables("HELIOS_");
 
             _configuration = configBuilder.Build();
