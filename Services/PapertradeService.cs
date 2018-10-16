@@ -45,7 +45,8 @@ namespace HeliosBot.Services
             var newUser = new PapertradeUser()
             {
                 UserId = userId,
-                Money = 50000
+                Money = 50000,
+                OwnedStocks = new List<PapertradeOwnedStock>()
             };
 
             _databaseContext.PapertradeUser.Add(newUser);
