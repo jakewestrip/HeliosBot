@@ -14,9 +14,18 @@ page.onError = function(msg, trace) {
     // uncomment to log into the console 
     console.error(msgStack.join('\n'));
 };
+
 page.open(url, function() {
-		var clipRect = page.evaluate(function() { return document.querySelector("svg").getBoundingClientRect(); });
-		page.clipRect = clipRect;
-        page.render('chart.png');
-        phantom.exit();
+	page.evaluate(function() {
+		document.getElementById("charType3").checked = true;
+		document.getElementById("priceMovingAverage1").value = 10;
+		document.getElementById("volumeIndicator").value = "BarMA";
+		document.getElementById("volumeMovingAverage").value = 10;
+		drawChart();
+	});
+		
+	var clipRect = page.evaluate(function() { return document.querySelector("svg").getBoundingClientRect(); });
+	page.clipRect = clipRect;
+	page.render('chart.png');
+	phantom.exit();
 });
