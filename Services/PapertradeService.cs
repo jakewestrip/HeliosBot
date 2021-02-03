@@ -75,6 +75,9 @@ namespace HeliosBot.Services
                         .Sum(x => x.Shares);
                     var totalHeld = bought - sold;
 
+                    if (totalHeld == 0)
+                        continue;
+
                     var orderedBuys = buys.OrderBy(x => x.Price).ToList();
                     
                     var numberToReconcile = totalHeld;
