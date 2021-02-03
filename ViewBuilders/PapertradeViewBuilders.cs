@@ -16,12 +16,17 @@ namespace HeliosBot.ViewBuilders
                 .WithTitle("Your portfolio")
                 .AddField(fb => fb.WithName(":moneybag: " + Format.Bold("Money")).WithValue(data.Money));
 
-            foreach (var v in data.Stocks)
+            foreach (var v in data.Holdings)
             {
-                embed.AddField(fb => fb.WithName(":bar_chart: " + Format.Bold(v.Key)).WithValue(v.Value).WithIsInline(true));
+                embed.AddField(fb => fb.WithName("---------------").WithValue($":bar_chart: {v.StockCode}").WithIsInline(false));
+                embed.AddField(fb => fb.WithName("Last Price").WithValue(v.LastPrice).WithIsInline(true));
+                embed.AddField(fb => fb.WithName("Quantity").WithValue(v.Quantity).WithIsInline(true));
+                embed.AddField(fb => fb.WithName("Price Paid").WithValue(v.PricePaid).WithIsInline(true));
+                embed.AddField(fb => fb.WithName("Total Gain").WithValue($"{v.TotalGain} ({v.TotalGainPercent})").WithIsInline(true));
+                embed.AddField(fb => fb.WithName("Value").WithValue(v.Value).WithIsInline(true));
             }
 
-            return embed.WithOkColor(); ;
+            return embed.WithOkColor();
         }
 
         public static EmbedBuilder BuildBuyView(PapertradeBuyResult data)

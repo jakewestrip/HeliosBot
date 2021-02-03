@@ -59,7 +59,6 @@ namespace HeliosBot
 
                 .AddSingleton<IASXService, ASXService>()
                 .AddSingleton<IChartService, ChartService>()
-                .AddSingleton<IPhantomJSService, PhantomJSService>()
                 .AddSingleton<IPapertradeService, PapertradeService>()
 
                 .AddSingleton<IConfiguration>(_configuration)

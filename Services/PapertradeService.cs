@@ -36,6 +36,7 @@ namespace HeliosBot.Services
         {
             var c = _databaseContext.PapertradeUser
                 .Include(x => x.OwnedStocks)
+                .Include(x => x.Transactions)
                 .Where(x => x.UserId == userId)
                 .ToList();
 
@@ -46,7 +47,8 @@ namespace HeliosBot.Services
             {
                 UserId = userId,
                 Money = 50000,
-                OwnedStocks = new List<PapertradeOwnedStock>()
+                OwnedStocks = new List<PapertradeOwnedStock>(),
+                Transactions = new List<PapertradeTransaction>()
             };
 
             _databaseContext.PapertradeUser.Add(newUser);
@@ -58,18 +60,79 @@ namespace HeliosBot.Services
         {
             var user = await GetOrCreateUser(userId);
 
-            var result = new PapertradePortfolioResult()
+            if (user.Transactions != null)
             {
-                UserId = user.UserId,
-                Money = user.Money,
-                Stocks = user.OwnedStocks.ToDictionary(x => x.StockCode, x => x.Shares)
-            };
+                var holdings = new List<PapertradePortfolioHolding>();
+                
+                var transactionsByStock = user.Transactions.GroupBy(x => x.StockCode);
+
+                foreach (var stock in transactionsByStock)
+                {
+                    var code = stock.Key;
+                    var buys = stock.Where(x => x.TransactionType == PapertradeTransactionType.BUY).ToList();
+                    var bought = buys.Sum(x => x.Shares);
+                    var sold = stock.Where(x => x.TransactionType == PapertradeTransactionType.SELL)
+                        .Sum(x => x.Shares);
+                    var totalHeld = bought - sold;
+
+                    var orderedBuys = buys.OrderBy(x => x.Price).ToList();
+                    
+                    var numberToReconcile = totalHeld;
+                    int smallestBuyIndex = 0;
+                    decimal totalSpent = 0;
+                    while (numberToReconcile != 0)
+                    {
+                        var smallestBuy = orderedBuys[smallestBuyIndex];
+                        var reconcilingHere = Math.Min(numberToReconcile, smallestBuy.Shares);
+                        totalSpent += (reconcilingHere * smallestBuy.Price);
+                        numberToReconcile -= reconcilingHere;
+                        smallestBuyIndex++;
+                    }
+
+                    var lookup = await _asxService.Lookup(code);
+                    if (!lookup.IsSuccess)
+                        return new Result<PapertradePortfolioResult> { IsSuccess = false, Message = lookup.Message };
+
+                    var data = lookup.Payload;
+
+                    if (!data.Last_Price.HasValue)
+                        return new Result<PapertradePortfolioResult>() { IsSuccess = false, Message = "Current price could not be retrieved." };
+
+                    var lastPrice = (decimal)data.Last_Price.Value;
+                    var value = lastPrice * totalHeld;
+                    var totalGain = (totalHeld * lastPrice) - totalSpent;
+                    
+                    var holding = new PapertradePortfolioHolding()
+                    {
+                        StockCode = code,
+                        Quantity = totalHeld,
+                        PricePaid = totalSpent,
+                        Value = $"{value:F2}",
+                        LastPrice = lastPrice,
+                        TotalGain = $"${totalGain:F2}",
+                        TotalGainPercent = $"{(totalGain / totalSpent):P}"
+                    };
+                    
+                    holdings.Add(holding);
+                }
+                
+                return new Result<PapertradePortfolioResult>()
+                {
+                    IsSuccess = true,
+                    Message = String.Empty,
+                    Payload = new PapertradePortfolioResult()
+                    {
+                        Holdings = holdings,
+                        Money = user.Money,
+                        UserId = user.UserId
+                    }
+                };
+            }
 
             return new Result<PapertradePortfolioResult>()
             {
-                IsSuccess = true,
-                Message = String.Empty,
-                Payload = result
+                IsSuccess = false,
+                Message = String.Empty
             };
         }
 
@@ -124,6 +187,15 @@ namespace HeliosBot.Services
 
                 result.TotalAmount = amount;
             }
+            
+            user.Transactions.Add(new PapertradeTransaction()
+            {
+                StockCode = stockCodeUpper,
+                Shares = amount,
+                TransactionType = PapertradeTransactionType.BUY,
+                User = user,
+                Price = (decimal)price
+            });
 
             await _databaseContext.SaveChangesAsync();
 
@@ -173,6 +245,15 @@ namespace HeliosBot.Services
 
             if (result.TotalAmount == 0)
                 user.OwnedStocks.Remove(ownedStock);
+            
+            user.Transactions.Add(new PapertradeTransaction()
+            {
+                StockCode = stockCodeUpper,
+                Shares = amount,
+                TransactionType = PapertradeTransactionType.SELL,
+                User = user,
+                Price = (decimal)price
+            });
 
             await _databaseContext.SaveChangesAsync();
 

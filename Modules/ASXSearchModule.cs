@@ -14,12 +14,10 @@ namespace HeliosBot.Modules
     public class ASXSearchModule : ModuleBase
     {
         private readonly IASXService _asxService;
-        private readonly IPhantomJSService _phantomJSService;
 
-        public ASXSearchModule(IASXService asxService, IPhantomJSService phantomJSService)
+        public ASXSearchModule(IASXService asxService)
         {
             _asxService = asxService;
-            _phantomJSService = phantomJSService;
         }
 
         [Command(""), Summary("Perform an ASX lookup")]
@@ -58,9 +56,6 @@ namespace HeliosBot.Modules
                     case "events":
                         await ASXUpcomingEvents(stockCode);
                         return;
-                    case "chart":
-                        await ASXChart(stockCode);
-                        return;
                     default:
                         break;
                 }
@@ -85,15 +80,6 @@ namespace HeliosBot.Modules
             var embed = ASXSearchViewBuilders.BuildLookupView(data);
 
             await ReplyAsync("", embed: embed);
-        }
-
-        [Command("chart"), Summary("Renders and uploads a chart for the selected company")]
-        public async Task ASXChart(string stockCode, [Remainder] string parameter = "")
-        {
-            var url = "https://www.asx.com.au/prices/charting/?code=" + stockCode + "&compareCode=&chartType=LINE&priceMovingAverage1=10&priceMovingAverage2=&volumeIndicator=BARMA&volumeMovingAverage=10&timeframe=daily";
-            var file = await _phantomJSService.SaveChart(url);
-
-            await Context.Channel.SendFileAsync(file, url);
         }
 
         [Command("company"), Summary("Retrieves information about a company, so you can learn more about them."), Alias("info", "i")]

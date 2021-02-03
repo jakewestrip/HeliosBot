@@ -17,6 +17,7 @@ namespace HeliosBot.Models
         public long UserId { get; set; }
         public string StockCode { get; set; }
         public long Shares { get; set; }
+        public decimal Price { get; set; }
         public PapertradeTransactionType TransactionType { get; set; }
     }
 }
